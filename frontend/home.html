@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grocery Tracker - Home</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #333;
+    }
+
+    h1 {
+      margin-top: 30px;
+      font-size: 3rem;
+      color: #fff;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .cards-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: center;
+      margin-top: 40px;
+      width: 90%;
+      max-width: 1000px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.95);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+      width: 300px;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 20px rgba(0,0,0,0.3);
+    }
+
+    .card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+    }
+
+    .card p {
+      font-size: 1.2rem;
+      margin: 10px 0;
+    }
+
+    .card button {
+      padding: 10px 20px;
+      font-weight: bold;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      box-shadow: 0 6px 10px rgba(0,0,0,0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 15px;
+    }
+
+    .card button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+    }
+
+    @media(max-width: 700px) {
+      .cards-container {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to Grocery Tracker</h1>
+
+  <div class="cards-container">
+    <!-- Inventory Card -->
+    <div class="card" id="inventoryCard">
+      <h2>Inventory</h2>
+      <p>Total Items: <span id="totalItems">0</span></p>
+      <button onclick="goToInventory()">View Inventory</button>
+    </div>
+
+    <!-- Shopping List Card -->
+    <div class="card" id="shoppingCard">
+      <h2>Shopping List</h2>
+      <p>Items Low in Stock: <span id="lowItems">0</span></p>
+      <p>Manual Items: <span id="manualItems">0</span></p>
+      <button onclick="goToShoppingList()">Go to Shopping List</button>
+    </div>
+  </div>
+
+  <script>
+    async function fetchDashboardData() {
+      try {
+        // Fetch total inventory items
+        const resItems = await fetch('http://127.0.0.1:5000/api/items');
+        const items = await resItems.json();
+        document.getElementById('totalItems').innerText = items.length;
+
+        // Fetch shopping list data
+        const resList = await fetch('http://127.0.0.1:5000/api/shopping-list');
+        const listData = await resList.json();
+        document.getElementById('lowItems').innerText = listData.auto.length;
+        document.getElementById('manualItems').innerText = listData.manual.length;
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      }
+    }
+
+    function goToInventory() {
+      window.location.href = '/index.html';
+    }
+
+    function goToShoppingList() {
+      window.location.href = '/shopping_list.html';
+    }
+
+    // Load data on page load
+    fetchDashboardData();
+  </script>
+</body>
+</html>

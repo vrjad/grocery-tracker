@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
@@ -55,12 +55,10 @@ def is_low(item: Item):
         return False
 
 # -----------------------
-# Routes
+# API Routes
 # -----------------------
-
 @app.route('/api/items', methods=['GET'])
 def get_items():
-    """Return all items with their stock info and percentage remaining."""
     items = Item.query.all()
     out = []
     for it in items:
@@ -101,13 +99,10 @@ def update_item(item_id):
             setattr(it, k, data[k])
     it.last_updated = datetime.utcnow()
     db.session.commit()
-
-    # record transaction if qty changed
     if 'current_qty' in data:
         t = Transaction(item_id=it.id, change_amount=float(data['current_qty']), reason='update')
         db.session.add(t)
         db.session.commit()
-
     return jsonify({"ok": True})
 
 @app.route('/api/items/<int:item_id>', methods=['DELETE'])
@@ -130,10 +125,8 @@ def shopping_list():
                 "max_qty": it.max_qty,
                 "suggested_qty": max(0, it.max_qty - it.current_qty)
             })
-
     manual = ManualList.query.filter_by(completed=False).all()
     manual_out = [{"id": m.id, "name": m.item_name, "qty": m.qty, "regular": m.regular} for m in manual]
-
     return jsonify({"auto": auto, "manual": manual_out})
 
 @app.route('/api/manual-add', methods=['POST'])
@@ -151,15 +144,11 @@ def manual_add():
 @app.route('/api/mark-bought', methods=['POST'])
 def mark_bought():
     data = request.json
-
-    # if it's manual item
     if data.get('manual_id'):
         m = ManualList.query.get_or_404(data['manual_id'])
         m.completed = True
         db.session.commit()
         return jsonify({"ok": True})
-
-    # auto item: update item qty
     if data.get('item_id'):
         it = Item.query.get_or_404(data['item_id'])
         added = float(data.get('add_qty', it.max_qty - it.current_qty))
@@ -168,12 +157,10 @@ def mark_bought():
         db.session.add(Transaction(item_id=it.id, change_amount=added, reason='bought'))
         db.session.commit()
         return jsonify({"ok": True})
-
     return jsonify({"error":"no id provided"}), 400
 
 @app.route('/api/items/low', methods=['GET'])
 def get_low_items():
-    """Return only the items that are below their threshold."""
     items = Item.query.all()
     low_items = []
     for it in items:
@@ -192,11 +179,28 @@ def get_low_items():
             })
     return jsonify(low_items)
 
+# -----------------------
+# Frontend Routes
+# -----------------------
+FRONTEND_DIR = os.path.join(base, '../frontend')
+
+@app.route('/')
+def root_redirect():
+    # Redirect root to /home
+    return redirect('/home')
+
+@app.route('/home')
+def home_page():
+    return send_from_directory(FRONTEND_DIR, 'home.html')
+
+@app.route('/<path:filename>')
+def serve_frontend(filename):
+    return send_from_directory(FRONTEND_DIR, filename)
 
 # -----------------------
 # Run app
 # -----------------------
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()  # create database inside application context
+        db.create_all()
     app.run(debug=True)

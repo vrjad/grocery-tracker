@@ -1,45 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Grocery Tracker</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 30px; }
-        h1 { color: #3b5998; }
-        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        th { background: #eee; }
-        button { margin: 5px; padding: 6px 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Grocery Tracker - Inventory</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+      margin: 0; padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #333;
+    }
+
+    h1 {
+      margin-top: 30px;
+      font-size: 3rem;
+      color: #fff;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    form, table {
+      background: rgba(255,255,255,0.95);
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+      width: 90%;
+      max-width: 900px;
+    }
+
+    label { display: block; margin: 10px 0; }
+    input[type="text"], input[type="number"] { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ccc; }
+
+    button {
+      padding: 10px 20px;
+      font-weight: bold;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      box-shadow: 0 6px 10px rgba(0,0,0,0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f5f5f5;
+    }
+
+    input[type="number"] {
+      width: 80px;
+    }
+
+    .top-buttons { display: flex; gap: 15px; justify-content: flex-end; margin-bottom: 10px; }
+
+    @media(max-width: 600px) {
+      input[type="number"] { width: 60px; }
+      form, table { width: 95%; }
+    }
+  </style>
 </head>
 <body>
-    <h1>🛒 Grocery Tracker</h1>
-    <h2>Inventory</h2>
-    <table id="inventoryTable">
-        <thead>
-            <tr><th>Item</th><th>Category</th><th>Max Qty</th><th>Current Qty</th></tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+  <h1>Grocery Tracker - Inventory</h1>
 
-    <script>
-        async function loadItems() {
-            const response = await fetch('http://127.0.0.1:5000/api/items');
-            const items = await response.json();
-            const tableBody = document.querySelector('#inventoryTable tbody');
-            tableBody.innerHTML = '';
-            items.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.name}</td>
-                    <td>${item.category}</td>
-                    <td>${item.max_qty}</td>
-                    <td>${item.current_qty}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-        loadItems();
-    </script>
+  <div class="top-buttons">
+    <a href="/home.html"><button>🏠 Home</button></a>
+    <button onclick="fetchItems()">Refresh Items</button>
+  </div>
+
+  <!-- Add Item Form -->
+  <form id="addItemForm" onsubmit="return addItem(event)">
+    <h3>Add New Item</h3>
+    <label>Name: <input type="text" id="name" required></label>
+    <label>Category: <input type="text" id="category" placeholder="e.g. Dairy, Vegetables"></label>
+    <label>Max Quantity: <input type="number" id="max_qty" step="0.1" required></label>
+    <label>Current Quantity: <input type="number" id="current_qty" step="0.1" required></label>
+    <label>Low Threshold (%): <input type="number" id="threshold_percent" step="1" value="20"></label>
+    <button type="submit">Add Item</button>
+  </form>
+
+  <!-- Items Table -->
+  <table id="itemsTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Current Qty</th>
+        <th>Max Qty</th>
+        <th>Threshold %</th>
+        <th>Last Updated</th>
+        <th>Low?</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    function timeAgo(timestamp){
+      const now = new Date();
+      const updated = new Date(timestamp + "Z");
+      const diff = Math.floor((now - updated)/1000);
+      if(diff < 60) return 'just now';
+      const mins = Math.floor(diff/60);
+      if(mins < 60) return mins + (mins===1?' minute ago':' minutes ago');
+      const hrs = Math.floor(mins/60);
+      if(hrs < 24) return hrs + (hrs===1?' hour ago':' hours ago');
+      const days = Math.floor(hrs/24);
+      return days + (days===1?' day ago':' days ago');
+    }
+
+    async function fetchItems(){
+      const response = await fetch('http://127.0.0.1:5000/api/items');
+      const items = await response.json();
+      const tbody = document.querySelector('#itemsTable tbody');
+      tbody.innerHTML = '';
+      items.forEach(it=>{
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${it.id}</td>
+          <td>${it.name}</td>
+          <td>${it.category}</td>
+          <td><input type="number" value="${it.current_qty}" step="0.1" id="current_${it.id}"></td>
+          <td><input type="number" value="${it.max_qty}" step="0.1" id="max_${it.id}"></td>
+          <td><input type="number" value="${it.threshold_percent}" step="1" id="threshold_${it.id}"></td>
+          <td>${timeAgo(it.last_updated)}</td>
+          <td>${it.low?'⚠️ Low':'✅ OK'}</td>
+          <td><button onclick="saveItem(${it.id})">Save</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function addItem(event){
+      event.preventDefault();
+      const data = {
+        name: document.getElementById('name').value,
+        category: document.getElementById('category').value || 'Other',
+        max_qty: parseFloat(document.getElementById('max_qty').value),
+        current_qty: parseFloat(document.getElementById('current_qty').value),
+        threshold_percent: parseFloat(document.getElementById('threshold_percent').value)
+      };
+      const res = await fetch('http://127.0.0.1:5000/api/items',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+      if(res.ok){
+        alert('Item added!');
+        document.getElementById('addItemForm').reset();
+        fetchItems();
+      }
+    }
+
+    async function saveItem(id){
+      const data = {
+        current_qty: parseFloat(document.getElementById(`current_${id}`).value),
+        max_qty: parseFloat(document.getElementById(`max_${id}`).value),
+        threshold_percent: parseFloat(document.getElementById(`threshold_${id}`).value)
+      };
+      const res = await fetch(`http://127.0.0.1:5000/api/items/${id}`,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+      if(res.ok) fetchItems();
+    }
+
+    fetchItems();
+  </script>
 </body>
 </html>
