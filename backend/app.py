@@ -57,11 +57,14 @@ def is_low(item: Item):
 # -----------------------
 # Routes
 # -----------------------
+
 @app.route('/api/items', methods=['GET'])
 def get_items():
+    """Return all items with their stock info and percentage remaining."""
     items = Item.query.all()
     out = []
     for it in items:
+        percent_left = (it.current_qty / it.max_qty * 100) if it.max_qty else 0
         out.append({
             "id": it.id,
             "name": it.name,
@@ -69,8 +72,9 @@ def get_items():
             "max_qty": it.max_qty,
             "current_qty": it.current_qty,
             "threshold_percent": it.threshold_percent,
-            "last_updated": it.last_updated.isoformat(),
-            "low": is_low(it)
+            "percent_left": round(percent_left, 1),
+            "low": is_low(it),
+            "last_updated": it.last_updated.isoformat()
         })
     return jsonify(out)
 
@@ -166,6 +170,28 @@ def mark_bought():
         return jsonify({"ok": True})
 
     return jsonify({"error":"no id provided"}), 400
+
+@app.route('/api/items/low', methods=['GET'])
+def get_low_items():
+    """Return only the items that are below their threshold."""
+    items = Item.query.all()
+    low_items = []
+    for it in items:
+        if is_low(it):
+            percent_left = (it.current_qty / it.max_qty * 100) if it.max_qty else 0
+            low_items.append({
+                "id": it.id,
+                "name": it.name,
+                "category": it.category,
+                "max_qty": it.max_qty,
+                "current_qty": it.current_qty,
+                "threshold_percent": it.threshold_percent,
+                "percent_left": round(percent_left, 1),
+                "low": True,
+                "last_updated": it.last_updated.isoformat()
+            })
+    return jsonify(low_items)
+
 
 # -----------------------
 # Run app
