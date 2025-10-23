@@ -14,3 +14,6 @@ __pycache__/
 
 # Why: .idea/ is PyCharm’s project settings folder. It contains machine-specific and user-specific files (paths, caches). You almost never want these in the repo. Adding the line to .gitignore tells Git to ignore that folder going forward.
 .idea/
+
+# Update DB
+grocery.db
