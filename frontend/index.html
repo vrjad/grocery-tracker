@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Grocery Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; }
+        h1 { color: #3b5998; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #eee; }
+        button { margin: 5px; padding: 6px 10px; }
+    </style>
+</head>
+<body>
+    <h1>🛒 Grocery Tracker</h1>
+    <h2>Inventory</h2>
+    <table id="inventoryTable">
+        <thead>
+            <tr><th>Item</th><th>Category</th><th>Max Qty</th><th>Current Qty</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        async function loadItems() {
+            const response = await fetch('http://127.0.0.1:5000/api/items');
+            const items = await response.json();
+            const tableBody = document.querySelector('#inventoryTable tbody');
+            tableBody.innerHTML = '';
+            items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>${item.category}</td>
+                    <td>${item.max_qty}</td>
+                    <td>${item.current_qty}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        loadItems();
+    </script>
+</body>
+</html>
